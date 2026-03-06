@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worlds Within Worlds | Meta-Cognition Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #111118;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-glow: #a78bfa;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(99, 102, 241, 0.2);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* UI Overlay */
+        .ui-layer {
+            position: fixed;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .ui-interactive {
+            pointer-events: auto;
+        }
+
+        /* Header */
+        #header {
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(10,10,15,0.9) 0%, transparent 100%);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-icon {
+            width: 2rem;
+            height: 2rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .control-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .control-btn svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Breadcrumb Navigation */
+        #breadcrumb {
+            top: 4rem;
+            left: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .breadcrumb-item {
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--accent-glow);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .breadcrumb-item.active {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-muted);
+        }
+
+        /* Hover Preview Card */
+        #preview-card {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            width: 22rem;
+            background: rgba(17, 17, 24, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            backdrop-filter: blur(10px);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        #preview-card.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+
+        .preview-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-badge {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-glow);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .preview-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+        }
+
+        .keyword-tag {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--accent-secondary);
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        /* Detail Panel (Right Side) */
+        #detail-panel {
+            position: fixed;
+            top: 50%;
+            right: 1.5rem;
+            transform: translateY(-50%);
+            width: 24rem;
+            background: rgba(17, 17, 24, 0.98);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #detail-panel.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            font-size: 0.9375rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .code-preview {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            overflow-x: auto;
+            max-height: 12rem;
+            overflow-y: auto;
+        }
+
+        /* Easter Egg Indicator */
+        .easter-egg-hint {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .easter-egg-hint.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Keyboard Help */
+        #keyboard-help {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(17, 17, 24, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .key-hint {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .key {
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid var(--border);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--accent-glow);
+        }
+
+        /* Zoom Level Indicator */
+        #zoom-indicator {
+            position: fixed;
+            top: 50%;
+            left: 1.5rem;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .zoom-level {
+            width: 3px;
+            height: 2rem;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .zoom-level.active {
+            background: var(--accent-primary);
+            width: 4px;
+        }
+
+        /* Loading Screen */
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.5);
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            #preview-card, #detail-panel {
+                width: calc(100% - 2rem);
+                left: 1rem;
+                right: 1rem;
+            }
+
+            #detail-panel {
+                top: auto;
+                bottom: 1rem;
+                transform: none;
+            }
+
+            #keyboard-help {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Building your cognitive universe...</div>
+    </div>
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- Header -->
+    <header id="header" class="ui-layer ui-interactive">
+        <div class="logo">
+            <div class="logo-icon">🧠</div>
+            <span>Meta-Cognition Explorer</span>
+        </div>
+        <div class="controls">
+            <button class="control-btn" id="motion-toggle" title="Toggle reduced motion">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                <span>Low Motion</span>
+            </button>
+            <button class="control-btn" id="reset-view" title="Reset view">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/>
+                    <path d="M3 3v9h9"/>
+                </svg>
+                <span>Reset</span>
+            </button>
+            <button class="control-btn" id="help-toggle" title="Toggle keyboard help">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span>Help</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Breadcrumb Navigation -->
+    <nav id="breadcrumb" class="ui-layer ui-interactive">
+        <span class="breadcrumb-item active" data-level="0">Universe</span>
+    </nav>
+
+    <!-- Zoom Level Indicator -->
+    <div id="zoom-indicator" class="ui-layer">
+        <div class="zoom-level active" data-level="0"></div>
+        <div class="zoom-level" data-level="1"></div>
+        <div class="zoom-level" data-level="2"></div>
+        <div class="zoom-level" data-level="3"></div>
+    </div>
+
+    <!-- Hover Preview Card -->
+    <div id="preview-card" class="ui-interactive">
+        <div class="preview-header">
+            <h3 class="preview-title" id="preview-title">Select a world</h3>
+        </div>
+        <div class="preview-meta">
+            <span id="preview-source">Source</span>
+            <span>•</span>
+            <span id="preview-messages">0 messages</span>
+        </div>
+        <span class="preview-badge" id="preview-type">Conversation</span>
+        <p class="preview-description" id="preview-description">
+            Hover over a celestial body to explore your ideas.
+        </p>
+        <div class="preview-keywords" id="preview-keywords"></div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div id="detail-panel" class="ui-interactive">
+        <div class="detail-section">
+            <div class="detail-label">Excerpt</div>
+            <div class="detail-value" id="detail-excerpt"></div>
+        </div>
+        <div class="detail-section" id="code-section">
+            <div class="detail-label">Code Artifact</div>
+            <pre class="code-preview" id="detail-code"></pre>
+        </div>
+        <div class="detail-section">
+            <div class="detail-label">Next Actions</div>
+            <div class="detail-value" id="detail-actions"></div>
+        </div>
+        <div class="detail-section">
+            <div class="detail-label">Related Worlds</div>
+            <div class="detail-value" id="detail-related"></div>
+        </div>
+    </div>
+
+    <!-- Easter Egg Hint -->
+    <div class="easter-egg-hint ui-layer" id="easter-egg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span>Secret world discovered! Press <kbd class="key">Space</kbd> to enter</span>
+    </div>
+
+    <!-- Keyboard Help -->
+    <div id="keyboard-help" class="ui-layer">
+        <div class="key-hint"><span class="key">↑↓←→</span> Navigate</div>
+        <div class="key-hint"><span class="key">Enter</span> Zoom in</div>
+        <div class="key-hint"><span class="key">Esc</span> Zoom out</div>
+        <div class="key-hint"><span class="key">Tab</span> Next world</div>
+        <div class="key-hint"><span class="key">M</span> Toggle motion</div>
+    </div>
+
+    <!-- Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // ============================================
+        // DATA: Your cognitive universe
+        // ============================================
+        let worldData;
+        
+        // Load unified project data from fusion
+        let realWorlds = null;
+        
+        async function loadProjectData() {
+            try {
+                const response = await fetch('/meta-cognition/unified_projects.json');
+                if (!response.ok) throw new Error('Failed to load');
+                const data = await response.json();
+                
+                // Transform unified data into world format
+                const worlds = {
+                    projects: data.projects.map((p, idx) => ({
+                        id: p.id,
+                        name: p.title,
+                        type: p.source,
+                        description: p.description,
+                        status: 'active',
+                        color: p.color,
+                        hasVoice: p.has_voice,
+                        hasImages: p.has_images,
+                        hasCode: p.has_code,
+                        messageCount: p.message_count,
+                        ideas: p.ideas,
+                        position: [
+                            (Math.random() - 0.5) * 150,
+                            (Math.random() - 0.5) * 80,
+                            (Math.random() - 0.5) * 150
+                        ],
+                        children: [] // Could expand based on ideas
+                    }))
+                };
+                
+                initWorld(worlds);
+                
+                // Update loading text with source breakdown
+                const bySource = {};
+                data.projects.forEach(p => {
+                    bySource[p.source] = (bySource[p.source] || 0) + 1;
+                });
+                const sourceText = Object.entries(bySource)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(' | ');
+                
+                document.querySelector('.loading-text').textContent = 
+                    `Loaded ${data.projects.length} conversations (${sourceText})`;
+                
+                setTimeout(() => {
+                    document.getElementById('loading').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loading').style.display = 'none';
+                    }, 500);
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to load unified data:', err);
+                document.querySelector('.loading-text').textContent = 
+                    'Failed to load unified data. Using demo mode.';
+                
+                setTimeout(() => {
+                    initWorld(DEMO_WORLDS);
+                    document.getElementById('loading').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loading').style.display = 'none';
+                    }, 500);
+                }, 2000);
+            }
+        }
+        
+        // Enhanced planet creation with media indicators
+        function createPlanet(data, position, scale = 1) {
+            const group = new THREE.Group();
+            group.userData = { ...data, isWorld: true };
+
+            // Main sphere
+            const geometry = new THREE.IcosahedronGeometry(1, 4);
+            const material = new THREE.MeshBasicMaterial({
+                color: data.color || 0x6366f1,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.6
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.scale.setScalar(scale);
+            group.add(mesh);
+
+            // Inner glow
+            const glowGeometry = new THREE.IcosahedronGeometry(0.9, 3);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: data.color || 0x6366f1,
+                transparent: true,
+                opacity: 0.3,
+                blending: THREE.AdditiveBlending
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            glow.scale.setScalar(scale * 0.95);
+            group.add(glow);
+
+            // Voice indicator (glowing ring)
+            if (data.hasVoice) {
+                const ringGeometry = new THREE.TorusGeometry(scale * 1.5, 0.02, 16, 100);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xf59e0b, // Orange for voice
+                    transparent: true,
+                    opacity: 0.6,
+                    blending: THREE.AdditiveBlending
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.rotation.x = Math.PI / 2;
+                ring.userData = { isVoiceIndicator: true };
+                group.add(ring);
+                
+                // Pulsing animation for voice
+                ring.userData.pulse = true;
+            }
+
+            // Image indicator (texture-like squares around)
+            if (data.hasImages) {
+                for (let i = 0; i < 4; i++) {
+                    const imgGeometry = new THREE.PlaneGeometry(scale * 0.3, scale * 0.3);
+                    const imgMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x10b981, // Green for images
+                        transparent: true,
+                        opacity: 0.4,
+                        side: THREE.DoubleSide
+                    });
+                    const img = new THREE.Mesh(imgGeometry, imgMaterial);
+                    const angle = (i / 4) * Math.PI * 2;
+                    img.position.x = Math.cos(angle) * scale * 1.8;
+                    img.position.y = Math.sin(angle) * scale * 1.8;
+                    img.lookAt(0, 0, 0);
+                    group.add(img);
+                }
+            }
+
+            // Code indicator (core glow)
+            if (data.hasCode) {
+                const codeGeometry = new THREE.IicosahedronGeometry(0.5, 2);
+                const codeMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xec4899, // Pink for code
+                    transparent: true,
+                    opacity: 0.5,
+                    blending: THREE.AdditiveBlending
+                });
+                const codeCore = new THREE.Mesh(codeGeometry, codeMaterial);
+                group.add(codeCore);
+            }
+
+            group.position.set(...position);
+            return group;
+        }
+
+        // Build level 0 (Universe)
+        function buildLevel0() {
+            // Clear existing
+            while(worldGroup.children.length > 1) {
+                worldGroup.remove(worldGroup.children[1]);
+            }
+            state.worldObjects = [];
+
+            const children = worldData.level0.children;
+            const count = children.length;
+            const radius = 15;
+
+            children.forEach((child, i) => {
+                if (child.secret && !state.easterEggRevealed) return;
+
+                const angle = (i / count) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = (Math.random() - 0.5) * 8;
+                
+                const planet = createPlanet(child, new THREE.Vector3(x, y, z), child.secret ? 0.6 : 1.2);
+                worldGroup.add(planet);
+                state.worldObjects.push(planet);
+
+                // Add orbiting particles
+                if (!config.lowMotion) {
+                    const particleCount = 20;
+                    for (let j = 0; j < particleCount; j++) {
+                        const pAngle = (j / particleCount) * Math.PI * 2;
+                        const pRadius = 2.5 + Math.random();
+                        const px = Math.cos(pAngle) * pRadius;
+                        const pz = Math.sin(pAngle) * pRadius;
+                        const py = (Math.random() - 0.5) * 0.5;
+                        
+                        const dot = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.03, 4, 4),
+                            new THREE.MeshBasicMaterial({ color: child.color, transparent: true, opacity: 0.6 })
+                        );
+                        dot.position.set(px, py, pz);
+                        planet.add(dot);
+                    }
+                }
+            });
+        }
+
+        // Build sub-level
+        function buildSubLevel(parentData, parentPosition) {
+            while(worldGroup.children.length > 1) {
+                worldGroup.remove(worldGroup.children[1]);
+            }
+            state.worldObjects = [];
+
+            const children = parentData.children || [];
+            const count = children.length;
+            const radius = 8;
+
+            // Add parent as central object
+            const centerPlanet = createPlanet(
+                { ...parentData, title: "↩ " + parentData.title, type: "center" },
+                new THREE.Vector3(0, 0, 0),
+                1.5
+            );
+            worldGroup.add(centerPlanet);
+
+            children.forEach((child, i) => {
+                const angle = (i / count) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = (Math.random() - 0.5) * 4;
+                
+                const planet = createPlanet(child, new THREE.Vector3(x, y, z), 0.8);
+                worldGroup.add(planet);
+                state.worldObjects.push(planet);
+            });
+
+            // Add code artifacts as floating objects
+            codeArtifacts.forEach((artifact, i) => {
+                const angle = ((i + 0.5) / codeArtifacts.length) * Math.PI * 2 + Math.PI / count;
+                const x = Math.cos(angle) * (radius * 1.5);
+                const z = Math.sin(angle) * (radius * 1.5);
+                const y = -3 + (Math.random() - 0.5) * 2;
+                
+                const artifactData = {
+                    title: `${artifact.language} snippet`,
+                    description: "Code artifact from conversation",
+                    type: "code",
+                    code: artifact.code,
+                    language: artifact.language,
+                    color: 0x64748b
+                };
+                
+                const artifactPlanet = createPlanet(artifactData, new THREE.Vector3(x, y, z), 0.4);
+                worldGroup.add(artifactPlanet);
+                state.worldObjects.push(artifactPlanet);
+            });
+        }
+
+        // Initial build
+        buildLevel0();
+
+        // ============================================
+        // INTERACTION
+        // ============================================
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            checkIntersection();
+        }
+
+        function checkIntersection() {
+            raycaster.setFromCamera(mouse, camera);
+            
+            const worldMeshes = state.worldObjects.flatMap(obj => obj.children);
+            const intersects = raycaster.intersectObjects(worldMeshes);
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object.parent;
+                if (object.userData.isWorld && object !== state.hoveredObject) {
+                    state.hoveredObject = object;
+                    updatePreviewCard(object.userData);
+                    document.body.style.cursor = 'pointer';
+                    
+                    // Highlight effect
+                    object.children.forEach(child => {
+                        if (child.material && child.material.emissive) {
+                            child.material.emissive.setHex(0x444444);
+                        }
+                    });
+                }
+            } else {
+                if (state.hoveredObject) {
+                    state.hoveredObject.children.forEach(child => {
+                        if (child.material && child.material.emissive) {
+                            child.material.emissive.setHex(0x000000);
+                        }
+                    });
+                    state.hoveredObject = null;
+                    hidePreviewCard();
+                    document.body.style.cursor = 'default';
+                }
+            }
+        }
+
+        function onClick(event) {
+            if (state.hoveredObject) {
+                const data = state.hoveredObject.userData;
+                
+                if (data.type === 'center') {
+                    // Go back
+                    navigateBack();
+                } else if (data.children && data.children.length > 0) {
+                    // Zoom into sub-world
+                    navigateToWorld(data);
+                } else {
+                    // Show details
+                    showDetailPanel(data);
+                }
+            }
+        }
+
+        // Navigation functions
+        function navigateToWorld(data) {
+            state.navigationStack.push({
+                level: state.currentLevel,
+                camera: camera.position.clone(),
+                target: controls.target.clone()
+            });
+            
+            state.currentLevel++;
+            buildSubLevel(data, state.hoveredObject.position);
+            
+            // Animate camera
+            const targetPos = new THREE.Vector3(0, 5, 20);
+            animateCamera(targetPos, new THREE.Vector3(0, 0, 0));
+            
+            updateBreadcrumb(data.title);
+            updateZoomIndicator();
+        }
+
+        function navigateBack() {
+            if (state.navigationStack.length === 0) return;
+            
+            const prev = state.navigationStack.pop();
+            state.currentLevel = prev.level;
+            
+            if (state.currentLevel === 0) {
+                buildLevel0();
+            }
+            
+            animateCamera(prev.camera, prev.target);
+            updateBreadcrumb(null, true);
+            updateZoomIndicator();
+            hideDetailPanel();
+        }
+
+        function animateCamera(position, target) {
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            const duration = config.lowMotion ? 500 : 1500;
+            const startTime = performance.now();
+
+            function update() {
+                const elapsed = performance.now() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+                camera.position.lerpVectors(startPos, position, ease);
+                controls.target.lerpVectors(startTarget, target, ease);
+
+                if (t < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            update();
+        }
+
+        // UI Updates
+        function updatePreviewCard(data) {
+            const card = document.getElementById('preview-card');
+            
+            document.getElementById('preview-title').textContent = data.title || 'Unknown';
+            document.getElementById('preview-source').textContent = data.source || 'Unknown';
+            document.getElementById('preview-messages').textContent = 
+                data.messages ? `${data.messages} messages` : 'World';
+            document.getElementById('preview-type').textContent = 
+                data.type ? data.type.charAt(0).toUpperCase() + data.type.slice(1) : 'World';
+            document.getElementById('preview-description').textContent = 
+                data.description || 'Explore to discover more...';
+            
+            const keywordsContainer = document.getElementById('preview-keywords');
+            keywordsContainer.innerHTML = '';
+            if (data.keywords) {
+                data.keywords.slice(0, 5).forEach(kw => {
+                    const tag = document.createElement('span');
+                    tag.className = 'keyword-tag';
+                    tag.textContent = kw;
+                    keywordsContainer.appendChild(tag);
+                });
+            }
+
+            card.classList.add('visible');
+
+            // Easter egg hint
+            if (data.secret) {
+                document.getElementById('easter-egg').classList.add('visible');
+            } else {
+                document.getElementById('easter-egg').classList.remove('visible');
+            }
+        }
+
+        function hidePreviewCard() {
+            document.getElementById('preview-card').classList.remove('visible');
+            document.getElementById('easter-egg').classList.remove('visible');
+        }
+
+        function showDetailPanel(data) {
+            const panel = document.getElementById('detail-panel');
+            
+            document.getElementById('detail-excerpt').textContent = 
+                data.description || 'No excerpt available.';
+            
+            const codeSection = document.getElementById('code-section');
+            if (data.code) {
+                document.getElementById('detail-code').textContent = data.code;
+                codeSection.style.display = 'block';
+            } else {
+                codeSection.style.display = 'none';
+            }
+            
+            document.getElementById('detail-actions').textContent = 
+                data.children && data.children.length > 0 
+                    ? `Click to explore ${data.children.length} sub-worlds`
+                    : 'No further actions available';
+            
+            document.getElementById('detail-related').textContent = 
+                data.keywords ? data.keywords.join(', ') : 'None';
+            
+            panel.classList.add('visible');
+        }
+
+        function hideDetailPanel() {
+            document.getElementById('detail-panel').classList.remove('visible');
+        }
+
+        function updateBreadcrumb(title, back = false) {
+            const container = document.getElementById('breadcrumb');
+            
+            if (back) {
+                container.lastElementChild?.remove();
+                const items = container.querySelectorAll('.breadcrumb-item');
+                items.forEach((item, i) => {
+                    item.classList.toggle('active', i === items.length - 1);
+                });
+            } else if (title) {
+                const items = container.querySelectorAll('.breadcrumb-item');
+                items.forEach(item => item.classList.remove('active'));
+                
+                const separator = document.createElement('span');
+                separator.className = 'breadcrumb-separator';
+                separator.textContent = '›';
+                container.appendChild(separator);
+                
+                const newItem = document.createElement('span');
+                newItem.className = 'breadcrumb-item active';
+                newItem.textContent = title;
+                newItem.addEventListener('click', () => navigateBack());
+                container.appendChild(newItem);
+            }
+        }
+
+        function updateZoomIndicator() {
+            document.querySelectorAll('.zoom-level').forEach((el, i) => {
+                el.classList.toggle('active', i === state.currentLevel);
+            });
+        }
+
+        // Keyboard navigation
+        function onKeyDown(event) {
+            switch(event.key) {
+                case 'Escape':
+                    navigateBack();
+                    break;
+                case 'Enter':
+                    if (state.hoveredObject) {
+                        onClick();
+                    } else if (state.worldObjects.length > 0) {
+                        state.hoveredObject = state.worldObjects[state.keyboardNavIndex];
+                        onClick();
+                    }
+                    break;
+                case 'Tab':
+                    event.preventDefault();
+                    if (state.worldObjects.length > 0) {
+                        state.keyboardNavIndex = (state.keyboardNavIndex + 1) % state.worldObjects.length;
+                        state.hoveredObject = state.worldObjects[state.keyboardNavIndex];
+                        updatePreviewCard(state.hoveredObject.userData);
+                    }
+                    break;
+                case 'ArrowUp':
+                case 'ArrowDown':
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    // Camera movement could be added here
+                    break;
+                case 'm':
+                case 'M':
+                    toggleMotion();
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    if (!state.easterEggRevealed) {
+                        state.easterEggRevealed = true;
+                        if (state.currentLevel === 0) {
+                            buildLevel0();
+                        }
+                    }
+                    break;
+                case '?':
+                case 'h':
+                case 'H':
+                    const help = document.getElementById('keyboard-help');
+                    help.style.display = help.style.display === 'none' ? 'flex' : 'none';
+                    break;
+            }
+        }
+
+        // Control functions
+        function toggleMotion() {
+            config.lowMotion = !config.lowMotion;
+            document.getElementById('motion-toggle').classList.toggle('active', config.lowMotion);
+            bloomPass.strength = config.lowMotion ? 0.4 : config.bloomStrength;
+        }
+
+        function resetView() {
+            while (state.navigationStack.length > 0) {
+                navigateBack();
+            }
+            animateCamera(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, 0));
+        }
+
+        // Event listeners
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        window.addEventListener('click', onClick);
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Control buttons
+        document.getElementById('motion-toggle').addEventListener('click', toggleMotion);
+        document.getElementById('reset-view').addEventListener('click', resetView);
+        document.getElementById('help-toggle').addEventListener('click', () => {
+            const help = document.getElementById('keyboard-help');
+            help.style.display = help.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        // ============================================
+        // ANIMATION LOOP
+        // ============================================
+        let time = 0;
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            time += 0.001;
+            
+            if (!config.lowMotion) {
+                // Rotate starfield slowly
+                starfield.rotation.y += config.rotationSpeed;
+                
+                // Animate worlds
+                state.worldObjects.forEach((obj, i) => {
+                    if (obj.userData.type !== 'center') {
+                        obj.rotation.y += config.rotationSpeed * 2;
+                        obj.rotation.x = Math.sin(time + i) * 0.1;
+                        
+                        // Floating animation
+                        obj.position.y += Math.sin(time * 2 + i) * 0.005;
+                        
+                        // Pulse voice indicators
+                        obj.children.forEach(child => {
+                            if (child.userData.isVoiceIndicator && child.userData.pulse) {
+                                child.scale.setScalar(1 + Math.sin(time * 5) * 0.1);
+                                child.material.opacity = 0.4 + Math.sin(time * 5) * 0.2;
+                            }
+                        });
+                    }
+                });
+                
+                // Pulse effect on hovered object
+                if (state.hoveredObject) {
+                    const scale = 1 + Math.sin(time * 10) * 0.05;
+                    state.hoveredObject.children[0].scale.setScalar(scale);
+                }
+            }
+            
+            controls.update();
+            composer.render();
+        }
+        
+        // Replace the static loading sequence with dynamic loading
+        loadProjectData();
+
+        // Code artifacts for deeper levels
+        const codeArtifacts = [
+            { language: "python", code: `def analyze_conversations(data):
+    # Extract patterns from 763 conversations
+    patterns = {
+        'adhd': 99,
+        'task': 54,
+        'plan': 70,
+        'remember': 44,
+        'organize': 45,
+        'overwhelm': 17
+    }
+    return patterns` },
+            { language: "javascript", code: `// Navigate cognitive universe
+const navigate = (intent, currentState) => {
+  const nextAction = bridgeGap(intent, currentState);
+  return executeWithSupport(nextAction);
+};` },
+            { language: "bash", code: `# Extract all the things
+find /conversations -name "*.json" | \
+  xargs jq -r '.[] | select(.keywords | contains(["ADHD"]))' | \
+  tee adhd_patterns.json` },
+            { language: "sql", code: `-- Query your cognitive patterns
+SELECT topic, COUNT(*) as frequency,
+       AVG(energy_level) as avg_energy
+FROM conversations
+WHERE timestamp > '2024-01-01'
+GROUP BY topic
+ORDER BY frequency DESC;` }
+        ];
+
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const config = {
+            lowMotion: false,
+            bloomStrength: 0.8,
+            bloomRadius: 0.5,
+            bloomThreshold: 0.2,
+            cameraSpeed: 2.0,
+            rotationSpeed: 0.0005,
+            particleCount: 1500
+        };
+
+        // ============================================
+        // THREE.JS SETUP
+        // ============================================
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0a0a0f, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 30);
+
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            alpha: true,
+            powerPreference: "high-performance"
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Post-processing
+        const composer = new EffectComposer(renderer);
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
+
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            config.bloomStrength,
+            config.bloomRadius,
+            config.bloomThreshold
+        );
+        composer.addPass(bloomPass);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 5;
+        controls.maxDistance = 100;
+        controls.enablePan = true;
+
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        const state = {
+            currentLevel: 0,
+            selectedObject: null,
+            hoveredObject: null,
+            navigationStack: [],
+            worldObjects: [],
+            easterEggRevealed: false,
+            keyboardNavIndex: 0
+        };
+
+        // ============================================
+        // WORLD GENERATION
+        // ============================================
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+
+        // Create starfield background
+        function createStarfield() {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            
+            for (let i = 0; i < config.particleCount; i++) {
+                const x = (Math.random() - 0.5) * 200;
+                const y = (Math.random() - 0.5) * 200;
+                const z = (Math.random() - 0.5) * 200;
+                positions.push(x, y, z);
+                
+                const color = new THREE.Color();
+                color.setHSL(Math.random() * 0.2 + 0.5, 0.5, Math.random() * 0.5 + 0.5);
+                colors.push(color.r, color.g, color.b);
+            }
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const stars = new THREE.Points(geometry, material);
+            worldGroup.add(stars);
+            return stars;
+        }
+
+        const starfield = createStarfield();
+
+        // Build level 0 (Universe)
+        function buildLevel0() {
+            // Clear existing
+            while(worldGroup.children.length > 1) {
+                worldGroup.remove(worldGroup.children[1]);
+            }
+            state.worldObjects = [];
+
+            const children = worldData.level0.children;
+            const count = children.length;
+            const radius = 15;
+
+            children.forEach((child, i) => {
+                if (child.secret && !state.easterEggRevealed) return;
+
+                const angle = (i / count) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = (Math.random() - 0.5) * 8;
+                
+                const planet = createPlanet(child, new THREE.Vector3(x, y, z), child.secret ? 0.6 : 1.2);
+                worldGroup.add(planet);
+                state.worldObjects.push(planet);
+
+                // Add orbiting particles
+                if (!config.lowMotion) {
+                    const particleCount = 20;
+                    for (let j = 0; j < particleCount; j++) {
+                        const pAngle = (j / particleCount) * Math.PI * 2;
+                        const pRadius = 2.5 + Math.random();
+                        const px = Math.cos(pAngle) * pRadius;
+                        const pz = Math.sin(pAngle) * pRadius;
+                        const py = (Math.random() - 0.5) * 0.5;
+                        
+                        const dot = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.03, 4, 4),
+                            new THREE.MeshBasicMaterial({ color: child.color, transparent: true, opacity: 0.6 })
+                        );
+                        dot.position.set(px, py, pz);
+                        planet.add(dot);
+                    }
+                }
+            });
+        }
+
+        // Build sub-level
+        function buildSubLevel(parentData, parentPosition) {
+            while(worldGroup.children.length > 1) {
+                worldGroup.remove(worldGroup.children[1]);
+            }
+            state.worldObjects = [];
+
+            const children = parentData.children || [];
+            const count = children.length;
+            const radius = 8;
+
+            // Add parent as central object
+            const centerPlanet = createPlanet(
+                { ...parentData, title: "↩ " + parentData.title, type: "center" },
+                new THREE.Vector3(0, 0, 0),
+                1.5
+            );
+            worldGroup.add(centerPlanet);
+
+            children.forEach((child, i) => {
+                const angle = (i / count) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = (Math.random() - 0.5) * 4;
+                
+                const planet = createPlanet(child, new THREE.Vector3(x, y, z), 0.8);
+                worldGroup.add(planet);
+                state.worldObjects.push(planet);
+            });
+
+            // Add code artifacts as floating objects
+            codeArtifacts.forEach((artifact, i) => {
+                const angle = ((i + 0.5) / codeArtifacts.length) * Math.PI * 2 + Math.PI / count;
+                const x = Math.cos(angle) * (radius * 1.5);
+                const z = Math.sin(angle) * (radius * 1.5);
+                const y = -3 + (Math.random() - 0.5) * 2;
+                
+                const artifactData = {
+                    title: `${artifact.language} snippet`,
+                    description: "Code artifact from conversation",
+                    type: "code",
+                    code: artifact.code,
+                    language: artifact.language,
+                    color: 0x64748b
+                };
+                
+                const artifactPlanet = createPlanet(artifactData, new THREE.Vector3(x, y, z), 0.4);
+                worldGroup.add(artifactPlanet);
+                state.worldObjects.push(artifactPlanet);
+            });
+        }
+
+        // Initial build
+        buildLevel0();
+
+        // ============================================
+        // INTERACTION
+        // ============================================
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            checkIntersection();
+        }
+
+        function checkIntersection() {
+            raycaster.setFromCamera(mouse, camera);
+            
+            const worldMeshes = state.worldObjects.flatMap(obj => obj.children);
+            const intersects = raycaster.intersectObjects(worldMeshes);
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object.parent;
+                if (object.userData.isWorld && object !== state.hoveredObject) {
+                    state.hoveredObject = object;
+                    updatePreviewCard(object.userData);
+                    document.body.style.cursor = 'pointer';
+                    
+                    // Highlight effect
+                    object.children.forEach(child => {
+                        if (child.material && child.material.emissive) {
+                            child.material.emissive.setHex(0x444444);
+                        }
+                    });
+                }
+            } else {
+                if (state.hoveredObject) {
+                    state.hoveredObject.children.forEach(child => {
+                        if (child.material && child.material.emissive) {
+                            child.material.emissive.setHex(0x000000);
+                        }
+                    });
+                    state.hoveredObject = null;
+                    hidePreviewCard();
+                    document.body.style.cursor = 'default';
+                }
+            }
+        }
+
+        function onClick(event) {
+            if (state.hoveredObject) {
+                const data = state.hoveredObject.userData;
+                
+                if (data.type === 'center') {
+                    // Go back
+                    navigateBack();
+                } else if (data.children && data.children.length > 0) {
+                    // Zoom into sub-world
+                    navigateToWorld(data);
+                } else {
+                    // Show details
+                    showDetailPanel(data);
+                }
+            }
+        }
+
+        // Navigation functions
+        function navigateToWorld(data) {
+            state.navigationStack.push({
+                level: state.currentLevel,
+                camera: camera.position.clone(),
+                target: controls.target.clone()
+            });
+            
+            state.currentLevel++;
+            buildSubLevel(data, state.hoveredObject.position);
+            
+            // Animate camera
+            const targetPos = new THREE.Vector3(0, 5, 20);
+            animateCamera(targetPos, new THREE.Vector3(0, 0, 0));
+            
+            updateBreadcrumb(data.title);
+            updateZoomIndicator();
+        }
+
+        function navigateBack() {
+            if (state.navigationStack.length === 0) return;
+            
+            const prev = state.navigationStack.pop();
+            state.currentLevel = prev.level;
+            
+            if (state.currentLevel === 0) {
+                buildLevel0();
+            }
+            
+            animateCamera(prev.camera, prev.target);
+            updateBreadcrumb(null, true);
+            updateZoomIndicator();
+            hideDetailPanel();
+        }
+
+        function animateCamera(position, target) {
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            const duration = config.lowMotion ? 500 : 1500;
+            const startTime = performance.now();
+
+            function update() {
+                const elapsed = performance.now() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+                camera.position.lerpVectors(startPos, position, ease);
+                controls.target.lerpVectors(startTarget, target, ease);
+
+                if (t < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            update();
+        }
+
+        // UI Updates
+        function updatePreviewCard(data) {
+            const card = document.getElementById('preview-card');
+            
+            document.getElementById('preview-title').textContent = data.title || 'Unknown';
+            document.getElementById('preview-source').textContent = data.source || 'Unknown';
+            document.getElementById('preview-messages').textContent = 
+                data.messages ? `${data.messages} messages` : 'World';
+            document.getElementById('preview-type').textContent = 
+                data.type ? data.type.charAt(0).toUpperCase() + data.type.slice(1) : 'World';
+            document.getElementById('preview-description').textContent = 
+                data.description || 'Explore to discover more...';
+            
+            const keywordsContainer = document.getElementById('preview-keywords');
+            keywordsContainer.innerHTML = '';
+            if (data.keywords) {
+                data.keywords.slice(0, 5).forEach(kw => {
+                    const tag = document.createElement('span');
+                    tag.className = 'keyword-tag';
+                    tag.textContent = kw;
+                    keywordsContainer.appendChild(tag);
+                });
+            }
+
+            card.classList.add('visible');
+
+            // Easter egg hint
+            if (data.secret) {
+                document.getElementById('easter-egg').classList.add('visible');
+            } else {
+                document.getElementById('easter-egg').classList.remove('visible');
+            }
+        }
+
+        function hidePreviewCard() {
+            document.getElementById('preview-card').classList.remove('visible');
+            document.getElementById('easter-egg').classList.remove('visible');
+        }
+
+        function showDetailPanel(data) {
+            const panel = document.getElementById('detail-panel');
+            
+            document.getElementById('detail-excerpt').textContent = 
+                data.description || 'No excerpt available.';
+            
+            const codeSection = document.getElementById('code-section');
+            if (data.code) {
+                document.getElementById('detail-code').textContent = data.code;
+                codeSection.style.display = 'block';
+            } else {
+                codeSection.style.display = 'none';
+            }
+            
+            document.getElementById('detail-actions').textContent = 
+                data.children && data.children.length > 0 
+                    ? `Click to explore ${data.children.length} sub-worlds`
+                    : 'No further actions available';
+            
+            document.getElementById('detail-related').textContent = 
+                data.keywords ? data.keywords.join(', ') : 'None';
+            
+            panel.classList.add('visible');
+        }
+
+        function hideDetailPanel() {
+            document.getElementById('detail-panel').classList.remove('visible');
+        }
+
+        function updateBreadcrumb(title, back = false) {
+            const container = document.getElementById('breadcrumb');
+            
+            if (back) {
+                container.lastElementChild?.remove();
+                const items = container.querySelectorAll('.breadcrumb-item');
+                items.forEach((item, i) => {
+                    item.classList.toggle('active', i === items.length - 1);
+                });
+            } else if (title) {
+                const items = container.querySelectorAll('.breadcrumb-item');
+                items.forEach(item => item.classList.remove('active'));
+                
+                const separator = document.createElement('span');
+                separator.className = 'breadcrumb-separator';
+                separator.textContent = '›';
+                container.appendChild(separator);
+                
+                const newItem = document.createElement('span');
+                newItem.className = 'breadcrumb-item active';
+                newItem.textContent = title;
+                newItem.addEventListener('click', () => navigateBack());
+                container.appendChild(newItem);
+            }
+        }
+
+        function updateZoomIndicator() {
+            document.querySelectorAll('.zoom-level').forEach((el, i) => {
+                el.classList.toggle('active', i === state.currentLevel);
+            });
+        }
+
+        // Keyboard navigation
+        function onKeyDown(event) {
+            switch(event.key) {
+                case 'Escape':
+                    navigateBack();
+                    break;
+                case 'Enter':
+                    if (state.hoveredObject) {
+                        onClick();
+                    } else if (state.worldObjects.length > 0) {
+                        state.hoveredObject = state.worldObjects[state.keyboardNavIndex];
+                        onClick();
+                    }
+                    break;
+                case 'Tab':
+                    event.preventDefault();
+                    if (state.worldObjects.length > 0) {
+                        state.keyboardNavIndex = (state.keyboardNavIndex + 1) % state.worldObjects.length;
+                        state.hoveredObject = state.worldObjects[state.keyboardNavIndex];
+                        updatePreviewCard(state.hoveredObject.userData);
+                    }
+                    break;
+                case 'ArrowUp':
+                case 'ArrowDown':
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    // Camera movement could be added here
+                    break;
+                case 'm':
+                case 'M':
+                    toggleMotion();
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    if (!state.easterEggRevealed) {
+                        state.easterEggRevealed = true;
+                        if (state.currentLevel === 0) {
+                            buildLevel0();
+                        }
+                    }
+                    break;
+                case '?':
+                case 'h':
+                case 'H':
+                    const help = document.getElementById('keyboard-help');
+                    help.style.display = help.style.display === 'none' ? 'flex' : 'none';
+                    break;
+            }
+        }
+
+        // Control functions
+        function toggleMotion() {
+            config.lowMotion = !config.lowMotion;
+            document.getElementById('motion-toggle').classList.toggle('active', config.lowMotion);
+            bloomPass.strength = config.lowMotion ? 0.4 : config.bloomStrength;
+        }
+
+        function resetView() {
+            while (state.navigationStack.length > 0) {
+                navigateBack();
+            }
+            animateCamera(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, 0));
+        }
+
+        // Event listeners
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        window.addEventListener('click', onClick);
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Control buttons
+        document.getElementById('motion-toggle').addEventListener('click', toggleMotion);
+        document.getElementById('reset-view').addEventListener('click', resetView);
+        document.getElementById('help-toggle').addEventListener('click', () => {
+            const help = document.getElementById('keyboard-help');
+            help.style.display = help.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        // ============================================
+        // ANIMATION LOOP
+        // ============================================
+        let time = 0;
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            time += 0.001;
+            
+            if (!config.lowMotion) {
+                // Rotate starfield slowly
+                starfield.rotation.y += config.rotationSpeed;
+                
+                // Animate worlds
+                state.worldObjects.forEach((obj, i) => {
+                    if (obj.userData.type !== 'center') {
+                        obj.rotation.y += config.rotationSpeed * 2;
+                        obj.rotation.x = Math.sin(time + i) * 0.1;
+                        
+                        // Floating animation
+                        obj.position.y += Math.sin(time * 2 + i) * 0.005;
+                        
+                        // Pulse voice indicators
+                        obj.children.forEach(child => {
+                            if (child.userData.isVoiceIndicator && child.userData.pulse) {
+                                child.scale.setScalar(1 + Math.sin(time * 5) * 0.1);
+                                child.material.opacity = 0.4 + Math.sin(time * 5) * 0.2;
+                            }
+                        });
+                    }
+                });
+                
+                // Pulse effect on hovered object
+                if (state.hoveredObject) {
+                    const scale = 1 + Math.sin(time * 10) * 0.05;
+                    state.hoveredObject.children[0].scale.setScalar(scale);
+                }
+            }
+            
+            controls.update();
+            composer.render();
+        }
+
+        // Start
+        document.getElementById('loading').classList.add('hidden');
+        animate();
+
+        // Console easter egg
+        console.log('%c🧠 Meta-Cognition Explorer', 'font-size: 24px; font-weight: bold; color: #6366f1;');
+        console.log('%c763 conversations mapped. 1000+ ideas visualized.', 'color: #94a3b8;');
+        console.log('%cPress Space to reveal hidden worlds...', 'color: #10b981; font-style: italic;');
+    </script>
+</body>
+</html>

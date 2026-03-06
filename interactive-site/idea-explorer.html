@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worlds Within Worlds | Idea Cosmos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #0a0a0f;
+            color: #f1f5f9;
+            overflow: hidden;
+            height: 100vh;
+        }
+        #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        .ui-layer {
+            position: fixed;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .ui-interactive { pointer-events: auto; }
+        
+        #header {
+            top: 0; left: 0; right: 0;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, rgba(10,10,15,0.9), transparent);
+        }
+        
+        #breadcrumb {
+            top: 4rem; left: 1.5rem;
+            display: flex; gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .crumb {
+            color: #64748b;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .crumb:hover, .crumb.active { color: #a78bfa; }
+        
+        #info-card {
+            position: fixed;
+            bottom: 1.5rem; left: 1.5rem;
+            width: 24rem;
+            background: rgba(17,17,24,0.95);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        #info-card.visible {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .idea-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+        .idea-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+        .idea-tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .tag-concept { background: rgba(16,185,129,0.2); color: #10b981; }
+        .tag-project { background: rgba(99,102,241,0.2); color: #6366f1; }
+        .tag-accommodation { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .tag-unfinished { background: rgba(239,68,68,0.2); color: #ef4444; }
+        
+        .idea-preview {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid rgba(99,102,241,0.3);
+            background: transparent;
+            color: #94a3b8;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: rgba(99,102,241,0.2);
+            color: #f1f5f9;
+        }
+        .btn.primary {
+            background: rgba(99,102,241,0.3);
+            color: #a78bfa;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(99,102,241,0.2);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .control-btn {
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.2);
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .control-btn:hover {
+            background: rgba(99,102,241,0.2);
+            color: #f1f5f9;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <p style="margin-top:1rem;color:#64748b">Loading 7,500+ ideas...</p>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <header id="header" class="ui-layer ui-interactive">
+        <div>
+            <h1 style="font-size:1.25rem;font-weight:600">🌌 Idea Cosmos</h1>
+            <p style="font-size:0.75rem;color:#64748b">Click any world to explore deeper</p>
+        </div>
+        <div class="controls">
+            <button class="control-btn" onclick="resetView()">Reset View</button>
+            <button class="control-btn" onclick="toggleFilter()">Filter: All</button>
+        </div>
+    </header>
+    
+    <nav id="breadcrumb" class="ui-layer ui-interactive">
+        <span class="crumb active" data-level="0">Universe</span>
+    </nav>
+    
+    <div id="info-card">
+        <div class="idea-title" id="card-title">Select an idea</div>
+        <div class="idea-meta">
+            <span class="idea-tag" id="card-type">Concept</span>
+            <span id="card-source">Source</span>
+            <span id="card-date">Date</span>
+        </div>
+        <div class="idea-preview" id="card-preview">Hover over nodes to see details</div>
+        <div class="actions">
+            <button class="btn primary" id="zoom-btn" onclick="zoomToSelection()">🔍 Zoom In</button>
+            <button class="btn" onclick="saveIdea()">💾 Save</button>
+            <button class="btn" onclick="shareIdea()">🔗 Share</button>
+        </div>
+    </div>
+    
+    <script>
+        // Global state
+        let scene, camera, renderer, nodes = [], edges = [];
+        let raycaster, mouse, hoveredNode = null, selectedNode = null;
+        let currentLevel = 0, breadcrumb = ['Universe'];
+        let ideasData = [];
+        
+        // Initialize
+        function init() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0a0a0f, 0.02);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+            
+            const pointLight = new THREE.PointLight(0x6366f1, 1, 100);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+            
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            
+            loadData();
+            animate();
+            
+            window.addEventListener('resize', onResize);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('click', onClick);
+        }
+        
+        // Load actual data
+        async function loadData() {
+            try {
+                const response = await fetch('/unified_projects.json');
+                ideasData = await response.json();
+                
+                // Create visualization
+                createUniverse();
+                
+                document.getElementById('loading').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+                
+                console.log('Loaded', ideasData.projects.length, 'projects');
+            } catch (err) {
+                console.error('Failed to load data, using demo:', err);
+                createDemoUniverse();
+            }
+        }
+        
+        function createUniverse() {
+            // Group by type
+            const groups = {
+                concept: ideasData.projects.filter(p => p.type === 'concept'),
+                project: ideasData.projects.filter(p => p.type === 'project'),
+                accommodation: ideasData.projects.filter(p => p.type === 'accommodation'),
+                unfinished: ideasData.projects.filter(p => p.type === 'unfinished')
+            };
+            
+            // Create galaxy arms for each type
+            Object.entries(groups).forEach(([type, items], groupIndex) => {
+                const color = type === 'concept' ? 0x10b981 :
+                             type === 'project' ? 0x6366f1 :
+                             type === 'accommodation' ? 0xf59e0b : 0xef4444;
+                
+                items.slice(0, 50).forEach((item, i) => {
+                    const angle = (i / Math.min(items.length, 50)) * Math.PI * 2 + (groupIndex * Math.PI / 2);
+                    const radius = 10 + Math.random() * 15;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    const z = (Math.random() - 0.5) * 10;
+                    
+                    createNode(x, y, z, color, item, type);
+                });
+            });
+        }
+        
+        function createDemoUniverse() {
+            const colors = [0x10b981, 0x6366f1, 0xf59e0b, 0xef4444];
+            for (let i = 0; i < 200; i++) {
+                const x = (Math.random() - 0.5) * 40;
+                const y = (Math.random() - 0.5) * 40;
+                const z = (Math.random() - 0.5) * 20;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                createNode(x, y, z, color, { title: 'Idea ' + i }, 'concept');
+            }
+        }
+        
+        function createNode(x, y, z, color, data, type) {
+            const geometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const node = new THREE.Mesh(geometry, material);
+            node.position.set(x, y, z);
+            node.userData = { ...data, type, originalScale: 1 };
+            
+            // Glow effect
+            const glowGeo = new THREE.SphereGeometry(0.6, 16, 16);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.1
+            });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            node.add(glow);
+            
+            scene.add(node);
+            nodes.push(node);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Slow rotation
+            nodes.forEach((node, i) => {
+                node.rotation.y += 0.005;
+                node.position.y += Math.sin(Date.now() * 0.001 + i) * 0.01;
+            });
+            
+            // Hover effect
+            if (hoveredNode) {
+                hoveredNode.scale.setScalar(1.5);
+                hoveredNode.material.emissiveIntensity = 1;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(nodes);
+            
+            if (intersects.length > 0) {
+                const node = intersects[0].object;
+                if (hoveredNode !== node) {
+                    if (hoveredNode) hoveredNode.scale.setScalar(1);
+                    hoveredNode = node;
+                    showCard(node.userData);
+                    document.body.style.cursor = 'pointer';
+                }
+            } else {
+                if (hoveredNode) {
+                    hoveredNode.scale.setScalar(1);
+                    hoveredNode.material.emissiveIntensity = 0.5;
+                    hoveredNode = null;
+                }
+                hideCard();
+                document.body.style.cursor = 'default';
+            }
+        }
+        
+        function onClick(event) {
+            if (hoveredNode) {
+                selectedNode = hoveredNode;
+                zoomToNode(selectedNode);
+            }
+        }
+        
+        function showCard(data) {
+            const card = document.getElementById('info-card');
+            document.getElementById('card-title').textContent = data.title || 'Untitled';
+            document.getElementById('card-type').textContent = data.type || 'idea';
+            document.getElementById('card-type').className = 'idea-tag tag-' + (data.type || 'concept');
+            document.getElementById('card-source').textContent = data.source || 'unknown';
+            document.getElementById('card-date').textContent = data.date ? data.date.split('T')[0] : '';
+            document.getElementById('card-preview').textContent = data.preview || data.title || 'No preview available';
+            card.classList.add('visible');
+        }
+        
+        function hideCard() {
+            document.getElementById('info-card').classList.remove('visible');
+        }
+        
+        function zoomToNode(node) {
+            // Animate camera to node
+            const targetPos = node.position.clone();
+            targetPos.z += 5;
+            
+            // Simple lerp animation
+            const startPos = camera.position.clone();
+            let progress = 0;
+            
+            function animateZoom() {
+                progress += 0.05;
+                if (progress >= 1) progress = 1;
+                
+                camera.position.lerpVectors(startPos, targetPos, progress);
+                camera.lookAt(node.position);
+                
+                if (progress < 1) requestAnimationFrame(animateZoom);
+                else {
+                    // Add to breadcrumb
+                    addBreadcrumb(node.userData.title || 'Idea');
+                }
+            }
+            animateZoom();
+        }
+        
+        function addBreadcrumb(name) {
+            const container = document.getElementById('breadcrumb');
+            const separator = document.createElement('span');
+            separator.className = 'crumb';
+            separator.textContent = '>';
+            container.appendChild(separator);
+            
+            const crumb = document.createElement('span');
+            crumb.className = 'crumb active';
+            crumb.textContent = name.substring(0, 20);
+            container.appendChild(crumb);
+        }
+        
+        function resetView() {
+            camera.position.set(0, 0, 30);
+            camera.lookAt(0, 0, 0);
+            document.getElementById('breadcrumb').innerHTML = '<span class="crumb active">Universe</span>';
+        }
+        
+        function toggleFilter() {
+            // Toggle between showing all or filtering by type
+            alert('Filter: Coming soon - filter by concept/project/accommodation/unfinished');
+        }
+        
+        function zoomToSelection() {
+            if (selectedNode) zoomToNode(selectedNode);
+        }
+        
+        function saveIdea() {
+            if (selectedNode) {
+                console.log('Saving:', selectedNode.userData);
+                alert('💾 Saved to your collection');
+            }
+        }
+        
+        function shareIdea() {
+            if (selectedNode) {
+                console.log('Sharing:', selectedNode.userData);
+                alert('🔗 Link copied to clipboard');
+            }
+        }
+        
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>

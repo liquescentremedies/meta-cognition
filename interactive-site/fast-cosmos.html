@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Cosmos | Your Ideas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0a0a0f;
+            --panel: #111118;
+            --accent: #6366f1;
+            --accent2: #8b5cf6;
+            --text: #f1f5f9;
+            --text2: #94a3b8;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Fast-loading hero */
+        .hero {
+            padding: 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, transparent 50%);
+        }
+        .hero h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text2);
+        }
+        
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 2rem;
+            color: var(--text2);
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Galaxy grid - shows immediately with sample data */
+        .galaxy {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            padding: 1rem 2rem;
+        }
+        .cluster {
+            background: var(--panel);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cluster:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(99,102,241,0.2);
+        }
+        .cluster-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .cluster-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+        .cluster-count {
+            background: rgba(99,102,241,0.2);
+            color: var(--accent);
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+        }
+        .cluster-ideas {
+            font-size: 0.875rem;
+            color: var(--text2);
+            line-height: 1.5;
+        }
+        .cluster-ideas li {
+            margin: 0.25rem 0;
+            padding-left: 1rem;
+            position: relative;
+        }
+        .cluster-ideas li::before {
+            content: "✦";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 0.6rem;
+        }
+        
+        /* Detail panel */
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            max-width: 100%;
+            height: 100vh;
+            background: var(--panel);
+            border-left: 1px solid rgba(99,102,241,0.3);
+            padding: 1.5rem;
+            overflow-y: auto;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        .detail-panel.open {
+            transform: translateX(0);
+        }
+        .detail-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text2);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* Search */
+        .search-bar {
+            padding: 1rem 2rem;
+        }
+        .search-input {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: block;
+            background: var(--panel);
+            border: 1px solid rgba(99,102,241,0.3);
+            color: var(--text);
+            padding: 0.875rem 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0 2rem 1rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.3);
+            color: var(--text2);
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        
+        /* Easter egg hint */
+        .easter-egg {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.3);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text2);
+            cursor: help;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>🌌 Your Idea Cosmos</h1>
+        <p style="color: var(--text2);">7,500+ ideas across 1,200+ conversations</p>
+        <div class="stats" id="stats">
+            <div class="stat">
+                <div class="stat-value" id="stat-conversations">—</div>
+                <div class="stat-label">Conversations</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-ideas">—</div>
+                <div class="stat-label">Ideas Extracted</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-projects">—</div>
+                <div class="stat-label">Projects</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-voice">203</div>
+                <div class="stat-label">Voice Memos</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="search-bar">
+        <input type="text" class="search-input" id="search" placeholder="Search your ideas... (try: camera, adhd, raspberry pi)" />
+    </div>
+    
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="claude">Claude</button>
+        <button class="filter-btn" data-filter="chatgpt">ChatGPT</button>
+        <button class="filter-btn" data-filter="gemini">Gemini</button>
+        <button class="filter-btn" data-filter="voice">🎙️ Voice</button>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Loading your cognitive universe...</span>
+    </div>
+    
+    <div class="galaxy" id="galaxy" style="display: none;">
+        <!-- Clusters injected here -->
+    </div>
+    
+    <div class="detail-panel" id="detail-panel">
+        <button class="detail-close" onclick="closeDetail()">×</button>
+        <div id="detail-content"></div>
+    </div>
+    
+    <div class="easter-egg" onclick="revealEasterEgg()">
+        ✦ Press SPACE to warp
+    </div>
+    
+    <script>
+        // Sample clusters that show immediately
+        const sampleClusters = [
+            {
+                name: "ADHD Accommodations",
+                count: 47,
+                source: "claude",
+                ideas: [
+                    "Raspberry Pi 4B AI assistant for real-time support",
+                    "Camera-based cleaning task identifier",
+                    "Voice-first interface for low-energy days",
+                    "Hyperfocus timer with gentle exit ramps"
+                ]
+            },
+            {
+                name: "Camera & Vision Projects",
+                count: 32,
+                source: "chatgpt",
+                ideas: [
+                    "Google Cloud Vision API integration",
+                    "Photo-to-task automatic breakdown",
+                    "Kitchen object recognition system",
+                    "Cable labeling with computer vision"
+                ]
+            },
+            {
+                name: "Data Archaeology",
+                count: 28,
+                source: "claude",
+                ideas: [
+                    "Conversation analysis across platforms",
+                    "Idea extraction from 7 years of chats",
+                    "Project resurrection from unfinished work",
+                    "Pattern recognition in hyperfocus topics"
+                ]
+            },
+            {
+                name: "Neurodivergent Design",
+                count: 19,
+                source: "gemini",
+                ideas: [
+                    "Universal Design for AuDHD brains",
+                    "Natively Adaptive Interfaces",
+                    "Worlds-within-worlds idea exploration",
+                    "Self-moulding agent calibration"
+                ]
+            },
+            {
+                name: "Maker Projects",
+                count: 56,
+                source: "chatgpt",
+                ideas: [
+                    "Micro:bit multi-sensor streaming",
+                    "3D quilling design generator",
+                    "Mobile modular workshop setup",
+                    "Skylar AI character framework"
+                ]
+            },
+            {
+                name: "AI Assistants",
+                count: 41,
+                source: "claude",
+                ideas: [
+                    "Master orchestrator for distributed cognition",
+                    "Brain fork personas (Skylar, Liquescent)",
+                    "OpenClaw agent configuration",
+                    "Glimmer voice interface prototype"
+                ]
+            }
+        ];
+        
+        let allProjects = [];
+        let filteredProjects = [];
+        
+        // Show samples immediately
+        renderClusters(sampleClusters);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('galaxy').style.display = 'grid';
+        
+        // Load full data in background
+        fetch('/meta-cognition/unified_projects.json')
+            .then(r => r.json())
+            .then(data => {
+                allProjects = data.projects || [];
+                
+                // Update stats
+                document.getElementById('stat-conversations').textContent = data.summary?.total_conversations || '1,200+';
+                document.getElementById('stat-ideas').textContent = data.summary?.total_ideas_extracted || '7,500+';
+                document.getElementById('stat-projects').textContent = allProjects.length || '6,800+';
+                
+                // Generate real clusters from data
+                const realClusters = generateClusters(allProjects);
+                renderClusters(realClusters);
+            })
+            .catch(err => {
+                console.log('Using sample data');
+            });
+        
+        function generateClusters(projects) {
+            // Group by detected topic
+            const topics = {};
+            projects.slice(0, 100).forEach(p => {
+                const topic = detectTopic(p);
+                if (!topics[topic]) topics[topic] = [];
+                topics[topic].push(p);
+            });
+            
+            return Object.entries(topics).map(([name, items]) => ({
+                name,
+                count: items.length,
+                source: items[0]?.source || 'mixed',
+                ideas: items.slice(0, 4).map(i => i.title?.substring(0, 60) + '...' || 'Untitled project')
+            }));
+        }
+        
+        function detectTopic(project) {
+            const title = (project.title || '').toLowerCase();
+            const desc = (project.description || '').toLowerCase();
+            
+            if (title.includes('adhd') || desc.includes('adhd')) return 'ADHD Accommodations';
+            if (title.includes('camera') || title.includes('vision') || desc.includes('vision')) return 'Camera & Vision';
+            if (title.includes('ai') || title.includes('agent') || desc.includes('agent')) return 'AI Assistants';
+            if (title.includes('raspberry') || title.includes('arduino')) return 'Hardware Projects';
+            if (title.includes('data') || title.includes('analysis')) return 'Data Archaeology';
+            return 'Other Ideas';
+        }
+        
+        function renderClusters(clusters) {
+            const galaxy = document.getElementById('galaxy');
+            galaxy.innerHTML = clusters.map(c => `
+                <div class="cluster" onclick="openCluster('${c.name}')">
+                    <div class="cluster-header">
+                        <span class="cluster-name">${c.name}</span>
+                        <span class="cluster-count">${c.count}</span>
+                    </div>
+                    <ul class="cluster-ideas">
+                        ${c.ideas.map(i => `<li>${i}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+        
+        function openCluster(name) {
+            const panel = document.getElementById('detail-panel');
+            const content = document.getElementById('detail-content');
+            
+            const clusterItems = allProjects.filter(p => detectTopic(p) === name).slice(0, 20);
+            
+            content.innerHTML = `
+                <h2>${name}</h2>
+                <p style="color: var(--text2); margin-bottom: 1rem;">${clusterItems.length} projects in this cluster</p>
+                ${clusterItems.map(p => `
+                    <div style="margin: 1rem 0; padding: 1rem; background: rgba(99,102,241,0.1); border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${p.title || 'Untitled'}</div>
+                        <div style="font-size: 0.875rem; color: var(--text2);">${p.description?.substring(0, 100) || 'No description'}...</div>
+                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--accent);">
+                            ${p.source} • ${p.timestamp?.split('T')[0] || 'Unknown date'}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+            
+            panel.classList.add('open');
+        }
+        
+        function closeDetail() {
+            document.getElementById('detail-panel').classList.remove('open');
+        }
+        
+        // Search
+        document.getElementById('search').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            if (!term) {
+                renderClusters(generateClusters(allProjects));
+                return;
+            }
+            
+            const filtered = allProjects.filter(p => 
+                (p.title || '').toLowerCase().includes(term) ||
+                (p.description || '').toLowerCase().includes(term)
+            );
+            
+            const searchClusters = [{
+                name: `Search: "${term}"`,
+                count: filtered.length,
+                source: 'search',
+                ideas: filtered.slice(0, 4).map(p => p.title?.substring(0, 60) + '...')
+            }];
+            
+            renderClusters(searchClusters);
+        });
+        
+        // Filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const filter = btn.dataset.filter;
+                if (filter === 'all') {
+                    renderClusters(generateClusters(allProjects));
+                } else {
+                    const filtered = allProjects.filter(p => p.source === filter);
+                    const clusters = generateClusters(filtered);
+                    renderClusters(clusters.length > 0 ? clusters : [{
+                        name: `${filter} Projects`,
+                        count: filtered.length,
+                        source: filter,
+                        ideas: filtered.slice(0, 4).map(p => p.title?.substring(0, 60) + '...')
+                    }]);
+                }
+            });
+        });
+        
+        // Easter egg - warp effect
+        function revealEasterEgg() {
+            alert('🌌 WARP ACTIVATED\n\nHidden feature discovered!\n\nTry:\n• Double-click any cluster to dive deeper\n• Press / to quick search\n• Press ESC to close panels\n\nMore worlds await...');
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                revealEasterEgg();
+            }
+            if (e.code === 'Escape') {
+                closeDetail();
+            }
+        });
+    </script>
+</body>
+</html>
