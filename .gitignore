@@ -1,0 +1,14 @@
+# Secrets
+*.db
+*.transcript.jsonl
+
+[truncated]
+ata-fusion/
+*.duckdb
+
+# Secrets
+.env
+[truncated]
+# OS
+.DS_Store
+Thumbs.db
