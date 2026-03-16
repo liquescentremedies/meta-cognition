@@ -1,14 +1,32 @@
-# Secrets
-*.db
-*.transcript.jsonl
-
-[truncated]
-ata-fusion/
+# Secrets & credentials
+.env
 *.duckdb
 
-# Secrets
-.env
-[truncated]
+# Databases (may contain personal data)
+*.db
+
+# Transcription data
+*.transcript.jsonl
+
+# Sensitive personal data — conversation exports & extracted content
+data-fusion/project_boards.json
+data-fusion/unified_projects.json
+data-fusion/fusion_summary.json
+data-fusion/extracted_ideas*.md
+
+# Logs and session captures
+logs/
+capture/
+transcription/progress.json
+
+# Worker/orchestrator runtime data
+orchestrator/worker_results.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
 # OS
 .DS_Store
 Thumbs.db
