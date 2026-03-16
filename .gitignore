@@ -14,8 +14,9 @@ data-fusion/unified_projects.json
 data-fusion/fusion_summary.json
 data-fusion/extracted_ideas*.md
 
-# Logs and session captures
-logs/
+# Logs and session captures (exclude personal conversation logs)
+logs/*
+!logs/*-security-audit.md
 capture/
 transcription/progress.json
 
