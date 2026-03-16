@@ -8,6 +8,15 @@ fi
 
 echo "Setting up meta-cognition environment..."
 
+# Load .env if present
+if [ -f "$CLAUDE_PROJECT_DIR/.env" ]; then
+  set -a
+  source "$CLAUDE_PROJECT_DIR/.env"
+  set +a
+  # Persist to session environment
+  grep -v '^\s*#' "$CLAUDE_PROJECT_DIR/.env" | grep '=' >> "$CLAUDE_ENV_FILE"
+fi
+
 # Install Python dependencies
 pip install beautifulsoup4 --quiet
 
