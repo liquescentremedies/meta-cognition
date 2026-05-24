@@ -6,6 +6,8 @@ Finds your collection zone and date by geocoding an address.
 Usage:
     python3 hard-rubbish-scout.py "3/17 Sassafras Drive Frankston"
     python3 hard-rubbish-scout.py --lat -38.154 --lon 145.134
+    python3 hard-rubbish-scout.py --street "Olivia Court"   # which week is that street?
+    python3 hard-rubbish-scout.py --upcoming                # list all weeks + street counts
 """
 
 import sys
@@ -98,8 +100,60 @@ def summarise(feature, label):
     print(f"  {label}: Zone {fid} — {', '.join(days) if days else json.dumps(props)}")
 
 
+ZONES_CACHE = "data-fusion/frankston-hard-rubbish-zones.json"
+
+def load_zones_cache():
+    import os
+    if os.path.exists(ZONES_CACHE):
+        with open(ZONES_CACHE) as f:
+            return json.load(f)
+    # Also try relative to script location
+    alt = os.path.join(os.path.dirname(__file__), "frankston-hard-rubbish-zones.json")
+    if os.path.exists(alt):
+        with open(alt) as f:
+            return json.load(f)
+    return None
+
+def search_street(name, zones):
+    name_lower = name.lower()
+    matches = {}
+    for week, streets in zones.items():
+        hits = [s for s in streets if name_lower in s.lower()]
+        if hits:
+            matches[week] = hits
+    return matches
+
 def main():
     args = sys.argv[1:]
+
+    # Street name search mode
+    if "--street" in args:
+        idx = args.index("--street")
+        street_name = args[idx + 1]
+        zones = load_zones_cache()
+        if not zones:
+            print("No zone cache found. Run without --street first to build it.")
+            sys.exit(1)
+        matches = search_street(street_name, zones)
+        if matches:
+            for week, streets in matches.items():
+                print(f"{week}")
+                for s in streets:
+                    print(f"  {s}")
+        else:
+            print(f"'{street_name}' not found in any zone. It may be outside Frankston council area.")
+        return
+
+    # Upcoming schedule summary mode
+    if "--upcoming" in args:
+        zones = load_zones_cache()
+        if not zones:
+            print("No zone cache found.")
+            sys.exit(1)
+        print("Frankston Hard Rubbish Schedule:\n")
+        for week, streets in zones.items():
+            print(f"  {week}: {len(streets)} streets")
+        return
 
     lat = lon = None
 
