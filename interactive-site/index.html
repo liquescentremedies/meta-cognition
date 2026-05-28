@@ -578,7 +578,26 @@
         // DATA: Your cognitive universe
         // ============================================
         let worldData;
-        
+
+        const DEMO_WORLDS = {
+            projects: [
+                { id: 'demo-claude', title: 'Claude Conversations', type: 'claude',
+                  description: 'AI conversations and ideas', color: 0x6366f1,
+                  hasVoice: false, hasImages: false, hasCode: true, messageCount: 763, children: [] },
+                { id: 'demo-chatgpt', title: 'ChatGPT Conversations', type: 'chatgpt',
+                  description: 'AI conversations and ideas', color: 0x10b981,
+                  hasVoice: false, hasImages: false, hasCode: false, messageCount: 575, children: [] },
+                { id: 'demo-gemini', title: 'Gemini Voice & Images', type: 'gemini',
+                  description: 'Voice recordings and images', color: 0xec4899,
+                  hasVoice: true, hasImages: true, hasCode: false, messageCount: 203, children: [] }
+            ]
+        };
+
+        function initWorld(data) {
+            worldData = { level0: { children: data.projects } };
+            buildLevel0();
+        }
+
         // Load unified project data from fusion
         let realWorlds = null;
         
@@ -592,7 +611,7 @@
                 const worlds = {
                     projects: data.projects.map((p, idx) => ({
                         id: p.id,
-                        name: p.title,
+                        title: p.title,
                         type: p.source,
                         description: p.description,
                         status: 'active',
@@ -715,7 +734,7 @@
 
             // Code indicator (core glow)
             if (data.hasCode) {
-                const codeGeometry = new THREE.IicosahedronGeometry(0.5, 2);
+                const codeGeometry = new THREE.IcosahedronGeometry(0.5, 2);
                 const codeMaterial = new THREE.MeshBasicMaterial({
                     color: 0xec4899, // Pink for code
                     transparent: true,
@@ -827,8 +846,8 @@
             });
         }
 
-        // Initial build
-        buildLevel0();
+        // Load real data; falls back to DEMO_WORLDS if unavailable
+        loadProjectData();
 
         // ============================================
         // INTERACTION
@@ -1417,8 +1436,8 @@ ORDER BY frequency DESC;` }
             });
         }
 
-        // Initial build
-        buildLevel0();
+        // Load real data; falls back to DEMO_WORLDS if unavailable
+        loadProjectData();
 
         // ============================================
         // INTERACTION
