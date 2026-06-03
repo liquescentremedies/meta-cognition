@@ -72,7 +72,12 @@ function runTask(args: string[]) {
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--energy" && args[i + 1]) {
-      energy = parseInt(args[i + 1]);
+      const parsed = parseInt(args[i + 1]);
+      if (isNaN(parsed) || parsed < 1 || parsed > 4) {
+        console.error("Energy level must be 1-4");
+        process.exit(1);
+      }
+      energy = parsed;
       i++;
     } else if (!taskName && !args[i].startsWith("--")) {
       taskName = args[i];
@@ -129,6 +134,10 @@ function visualizeLog(entries: EnergyEntry[]) {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const recent = entries.filter(e => new Date(e.timestamp) >= sevenDaysAgo);
+  if (recent.length === 0) {
+    console.log("No energy data logged in the last 7 days.");
+    return;
+  }
 
   console.log("\n🧠 GLIMMER: Energy Patterns (Last 7 Days)");
   console.log("=".repeat(50));
@@ -236,6 +245,12 @@ function gentleMessage(elapsedMinutes: number, topic: string): string {
 }
 
 function startFocus(topic: string) {
+  const existing = loadSession();
+  if (existing && existing.status === "active") {
+    console.log(`⚠️  Active focus session already running: "${existing.topic}"`);
+    console.log("Exit it first with: bun glimmer.ts focus exit");
+    return;
+  }
   const session: Session = {
     topic,
     startedAt: new Date().toISOString(),
@@ -287,17 +302,22 @@ function focusChime() {
 
 function exitFocus() {
   const session = loadSession();
-  if (!session) {
-    console.log("No session to exit.");
+  if (!session || session.status !== "active") {
+    console.log("No active session to exit.");
     return;
   }
   const elapsed = Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 60000);
   session.status = "completed";
   session.totalMinutes = elapsed;
 
-  const history = existsSync(HISTORY_FILE)
-    ? JSON.parse(readFileSync(HISTORY_FILE, "utf-8"))
-    : [];
+  let history: any[] = [];
+  if (existsSync(HISTORY_FILE)) {
+    try {
+      history = JSON.parse(readFileSync(HISTORY_FILE, "utf-8"));
+    } catch {
+      history = [];
+    }
+  }
   history.push({ ...session, endedAt: new Date().toISOString() });
   writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
   saveSession(session);
