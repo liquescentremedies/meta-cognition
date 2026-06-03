@@ -49,6 +49,7 @@ meta-cognition/
 │       └── skills/
 │           └── adhd-tools/
 │               ├── SKILL.md           # Skill documentation
+│               ├── glimmer.ts         # Unified entry point (use this)
 │               ├── task-breakdown.ts  # Decomposes overwhelming tasks
 │               ├── energy-track.ts    # Tracks energy levels over time
 │               └── hyperfocus-guard.ts # Manages hyperfocus sessions
@@ -108,16 +109,18 @@ There is no `package.json`, `pyproject.toml`, `requirements.txt`, `Makefile`, or
 ### TypeScript (Bun)
 
 ```bash
-# Task breakdown — decomposes a task based on energy level (1-5)
+# Unified entry point — all three tools in one (preferred)
+bun openclaw-config/agents/skills/adhd-tools/glimmer.ts task "organise photos" --energy 2
+bun openclaw-config/agents/skills/adhd-tools/glimmer.ts energy log 3 "after lunch"
+bun openclaw-config/agents/skills/adhd-tools/glimmer.ts energy view
+bun openclaw-config/agents/skills/adhd-tools/glimmer.ts focus start "building ADHD agent"
+bun openclaw-config/agents/skills/adhd-tools/glimmer.ts focus status
+bun openclaw-config/agents/skills/adhd-tools/glimmer.ts focus exit
+
+# Individual scripts also still work
 bun openclaw-config/agents/skills/adhd-tools/task-breakdown.ts "organise photos" --energy 3
-
-# Energy tracking — log current energy level with optional note
 bun openclaw-config/agents/skills/adhd-tools/energy-track.ts log 3 "after lunch"
-
-# Hyperfocus guard — start, check status, or pause a focus session
 bun openclaw-config/agents/skills/adhd-tools/hyperfocus-guard.ts start "building ADHD agent"
-bun openclaw-config/agents/skills/adhd-tools/hyperfocus-guard.ts status
-bun openclaw-config/agents/skills/adhd-tools/hyperfocus-guard.ts pause
 
 # Orchestrator — route between brain forks
 bun orchestrator/orchestrator.ts
@@ -204,7 +207,7 @@ interactive-site/index.html → THREE.js cosmos visualisation
 
 - Brain forks use persona names: `glimmer-ember`, `skylar-taskmaster`, `liquescent-creative`
 - Script versions use `-v2` suffix: `fusion-engine-v2.py`
-- Energy levels are integers 1–5 (1=low, 5=high)
+- Energy levels are integers 1–4 (1=low 🌙, 2=moderate 🌊, 3=good ✨, 4=high 🔥)
 - Idea types: `concept`, `project`, `accommodation`, `unfinished`
 
 ### Code Style
@@ -247,7 +250,7 @@ Agent configuration in the repo (`openclaw-config/`) defines:
 - Skill scripts (`agents/skills/adhd-tools/*.ts`)
 - Integration trigger mappings (`INTEGRATION.md`)
 
-To register the agent with OpenClaw, follow `SETUP_GUIDE.md`. API keys (Claude, OpenAI, HuggingFace, Gemini) are stored in the external OpenClaw config, never in this repo.
+To register the agent with OpenClaw, follow `SETUP_GUIDE.md` (API key setup). API keys (Claude, OpenAI, HuggingFace, Gemini) are stored in the external OpenClaw config, never in this repo.
 
 Skill scripts write state to `~/.glimmer/` (created automatically on first run):
 - `~/.glimmer/energy-log.json` — energy history
@@ -291,6 +294,10 @@ This project is built for an AuDHD user. When interacting in this codebase:
 - TypeScript scripts are standalone — run with `bun <script.ts>`, no imports from other repo files
 - Python scripts use hardcoded paths — check the path constants at the top before running in a different environment
 
+### For deeper context
+
+Read `HANDOVER.md` — it has detailed system state, open issues with fixes, real data metrics, and user cognitive profile. It's the most complete picture of current state and next steps.
+
 ### Branch
 
-Active development branch: `claude/add-claude-documentation-Tj6lG`
+Active development branch: `claude/combine-self-created-skills-Seovj`
