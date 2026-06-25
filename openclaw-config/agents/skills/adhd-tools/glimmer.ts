@@ -137,8 +137,11 @@ function visualizeLog(entries: EnergyEntry[]) {
   if (recent.length === 0) {
     console.log("No energy data logged in the last 7 days.");
     return;
+  const recent = entries.filter(e => new Date(e.timestamp) >= sevenDaysAgo);
+  if (recent.length === 0) {
+    console.log("No energy data logged in the last 7 days.");
+    return;
   }
-
   console.log("\n🧠 GLIMMER: Energy Patterns (Last 7 Days)");
   console.log("=".repeat(50));
 
